@@ -1,9 +1,9 @@
 # sld-rank-timer
 autohotkey script to detect @x, @xd, @xd2 usage and cooldown in a gui
 
-# Pre-requisite:
-AutoHotkey which can be downloaded [here](https://www.autohotkey.com/)
+## Instructions:
+1. Download [AutoHotkey](https://www.autohotkey.com/)
 
-# Instructions:
-Download the .zip
-Run the sld_rank_timer.ahk file
+2. Download the sld-rank-timer.zip
+
+3. Run the sld_rank_timer.ahk file
