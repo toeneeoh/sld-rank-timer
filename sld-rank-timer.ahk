@@ -1,16 +1,19 @@
 ﻿#Requires AutoHotkey v2.0
-gui1  := Gui('+AlwaysOnTop', 'Lotto Rank Timer'), gui1.SetFont('s10')
+gui1  := Gui('+AlwaysOnTop', 'SLD Rank Timer'), gui1.SetFont('s10')
 xTxt  := gui1.Add('Text', 'w400 h15', '@x is available')
 xdTxt := gui1.Add('Text', 'w400 h15', '@xd is available')
 xd2Txt := gui1.Add('Text', 'w400 h15', '@xd2 is available')
-reset := gui1.Add('Button', 'w100 h20', 'Reset')
-reset.OnEvent("Click", ResetClick)
+resetButton := gui1.Add('Button', 'w100 h20', 'Reset')
+resetButton.OnEvent("Click", ResetClick)
+pauseButton := gui1.Add('Button', 'w100 h20 xp120 yp0', 'Pause')
+pauseButton.OnEvent("Click", TogglePause)
 gui1.OnEvent("Close", CloseApp)
 gui1.Show('w400 h120 x1200 y150')
 
 ih := InputHook("L5 E M V" , '{Enter}', '@xd{Enter}, @x{Enter}, @xd2{Enter}')
 
-game_speed := 700 ; fastest game speed
+GAME_SPEED := 700 ; fastest game speed
+IS_PAUSED := false
 
 ; base cooldowns
 cooldowns := Map()
@@ -41,6 +44,12 @@ CloseApp(info) {
     ExitApp
 }
 
+TogglePause(btn, info) {
+    global IS_PAUSED
+    IS_PAUSED := !IS_PAUSED
+    pauseButton.Text := IS_PAUSED ? 'Unpause' : 'Pause'
+}
+
 ResetClick(btn, info) {
     ResetCD("x")
     ResetCD("xd")
@@ -48,7 +57,7 @@ ResetClick(btn, info) {
 }
 
 DetectKeyInputs() {
-    global cooldowns, timers, game_speed
+    global cooldowns, timers, GAME_SPEED
     Loop {
         ih.Start() ; Start capturing input
         ih.Wait()
@@ -69,7 +78,7 @@ DetectKeyInputs() {
         }
 
         if input {
-            SetTimer(timers[input], game_speed, 1000000) ; arbitrary priority (?)
+            SetTimer(timers[input], GAME_SPEED, 1000000) ; arbitrary priority (?)
         }
     }
 }
@@ -82,8 +91,10 @@ ResetCD(cmd) {
 }
 
 Tick(cmd) {
-    global cd_map, boxes
-    cd_map[cmd] := cd_map[cmd] - 1
+    global cd_map, boxes, IS_PAUSED
+    if !(IS_PAUSED) {
+        cd_map[cmd] := cd_map[cmd] - 1
+    }
     if cd_map[cmd] > 0 {
         boxes[cmd].Text := '@' . cmd . ' is on cooldown: ' . cd_map[cmd] . ' seconds remain'
     } else {
