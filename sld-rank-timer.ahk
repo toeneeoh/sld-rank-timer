@@ -1,19 +1,22 @@
 ﻿#Requires AutoHotkey v2.0
-gui1  := Gui('+AlwaysOnTop', 'SLD Rank Timer'), gui1.SetFont('s10')
-xTxt  := gui1.Add('Text', 'w400 h15', '@x is available')
-xdTxt := gui1.Add('Text', 'w400 h15', '@xd is available')
-xd2Txt := gui1.Add('Text', 'w400 h15', '@xd2 is available')
-resetButton := gui1.Add('Button', 'w100 h20', 'Reset')
+mainGui  := Gui('+AlwaysOnTop', 'SLD Rank Timer'), mainGui.SetFont('s10')
+xTxt  := mainGui.Add('Text', 'w400 h15', '@x is available')
+xdTxt := mainGui.Add('Text', 'w400 h15', '@xd is available')
+xd2Txt := mainGui.Add('Text', 'w400 h15', '@xd2 is available')
+resetButton := mainGui.Add('Button', 'w100 h20', 'Reset')
 resetButton.OnEvent("Click", ResetClick)
-pauseButton := gui1.Add('Button', 'w100 h20 xp120 yp0', 'Pause')
+pauseButton := mainGui.Add('Button', 'w100 h20 xp120 yp0', 'Pause')
 pauseButton.OnEvent("Click", TogglePause)
-gui1.OnEvent("Close", CloseApp)
-gui1.Show('w400 h120 x1200 y150')
+optionsButton := mainGui.Add('Button', 'w100 h20 xp120 yp0', 'Options')
+optionsButton.OnEvent("Click", OptionsMenu)
+mainGui.OnEvent("Close", CloseApp)
+mainGui.Show('w400 h120 x1200 y150')
 
 ih := InputHook("L5 E M V" , '{Enter}', '@xd{Enter}, @x{Enter}, @xd2{Enter}')
 
 GAME_SPEED := 700 ; fastest game speed
 IS_PAUSED := false
+BEEP_DURATION := 1000
 
 ; base cooldowns
 cooldowns := Map()
@@ -42,6 +45,33 @@ SetTimer(DetectKeyInputs, 100)
 
 CloseApp(info) {
     ExitApp
+}
+
+OptionsMenu(btn, info) {
+    global mainGui
+    options := Gui('+AlwaysOnTop')
+    options.Opt("+Owner" mainGui.Hwnd)
+    options.Show('w500 h500 x1100 y300')
+    mainGui.Opt("+Disabled")
+
+    beepText := options.Add("Text", "", "Sound alert duration (in milliseconds)")
+    beepDuration := options.Add("Edit", "Limit4 Number w80", String(BEEP_DURATION))
+    beepDuration.OnEvent("Change", UpdateSoundDuration)
+
+    options.OnEvent("Close", CloseOptions)
+}
+
+CloseOptions(info) {
+    global mainGui
+    mainGui.Opt("-Disabled")
+}
+
+UpdateSoundDuration(btn, info) {
+    global BEEP_DURATION
+
+    if btn.Text != "" {
+        BEEP_DURATION := Integer(btn.Text)
+    }
 }
 
 TogglePause(btn, info) {
@@ -91,7 +121,7 @@ ResetCD(cmd) {
 }
 
 Tick(cmd) {
-    global cd_map, boxes, IS_PAUSED
+    global cd_map, boxes, IS_PAUSED, beepDuration
     if !(IS_PAUSED) {
         cd_map[cmd] := cd_map[cmd] - 1
     }
@@ -99,5 +129,6 @@ Tick(cmd) {
         boxes[cmd].Text := '@' . cmd . ' is on cooldown: ' . cd_map[cmd] . ' seconds remain'
     } else {
         ResetCD(cmd)
+        SoundBeep(800, BEEP_DURATION)
     }
 }
