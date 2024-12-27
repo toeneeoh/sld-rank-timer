@@ -17,6 +17,7 @@ ih := InputHook("L5 E M V" , '{Enter}', '@xd{Enter}, @x{Enter}, @xd2{Enter}')
 GAME_SPEED := 700 ; fastest game speed
 IS_PAUSED := false
 BEEP_DURATION := 1000
+ALWAYS_RESET_TIMER := 0
 
 ; base cooldowns
 cooldowns := Map()
@@ -58,6 +59,9 @@ OptionsMenu(btn, info) {
     beepDuration := options.Add("Edit", "Limit4 Number w80", String(BEEP_DURATION))
     beepDuration.OnEvent("Change", UpdateSoundDuration)
 
+    alwaysResetTimer := options.Add("CheckBox" , "Checked" ALWAYS_RESET_TIMER, "Reset timer with command")
+    alwaysResetTimer.OnEvent("Click", ToggleResetTimer)
+
     options.OnEvent("Close", CloseOptions)
 }
 
@@ -74,6 +78,12 @@ UpdateSoundDuration(btn, info) {
     }
 }
 
+ToggleResetTimer(btn, info) {
+    global ALWAYS_RESET_TIMER
+
+    ALWAYS_RESET_TIMER := btn.Value
+}
+
 TogglePause(btn, info) {
     global IS_PAUSED
     IS_PAUSED := !IS_PAUSED
@@ -87,28 +97,28 @@ ResetClick(btn, info) {
 }
 
 DetectKeyInputs() {
-    global cooldowns, timers, GAME_SPEED
+    global cooldowns, cd_map, timers, GAME_SPEED, ALWAYS_RESET_TIMER
     Loop {
         ih.Start() ; Start capturing input
         ih.Wait()
         input := false
 
         if InStr(ih.Input, "@xd2") {
-            if cd_map["xd2"] == cooldowns["xd2"] {
-                input := "xd2"
-            }
+            input := "xd2"
         } else if InStr(ih.Input, "@xd") {
-            if cd_map["xd"] == cooldowns["xd"] {
-                input := "xd"
-            }
+            input := "xd"
         } else if InStr(ih.Input, "@x") {
-            if cd_map["x"] == cooldowns["x"] {
-                input := "x"
-            }
+            input := "x"
         }
 
         if input {
-            SetTimer(timers[input], GAME_SPEED, 1000000) ; arbitrary priority (?)
+            ; don't reset timer if already started and ALWAYS_RESET_TIMER is off
+            if !(ALWAYS_RESET_TIMER) && cd_map[input] < cooldowns[input] {
+                return
+            }
+
+            ResetCD(input)
+            SetTimer(timers[input], GAME_SPEED)
         }
     }
 }
