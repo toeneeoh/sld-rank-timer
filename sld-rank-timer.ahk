@@ -1,16 +1,24 @@
 ﻿#Requires AutoHotkey v2.0
 mainGui  := Gui('+AlwaysOnTop', 'SLD Rank Timer'), mainGui.SetFont('s10')
+
 xTxt  := mainGui.Add('Text', 'w400 h15', '@x is available')
 xdTxt := mainGui.Add('Text', 'w400 h15', '@xd is available')
 xd2Txt := mainGui.Add('Text', 'w400 h15', '@xd2 is available')
+
 resetButton := mainGui.Add('Button', 'w100 h20', 'Reset')
 resetButton.OnEvent("Click", ResetClick)
+
 pauseButton := mainGui.Add('Button', 'w100 h20 xp120 yp0', 'Pause')
 pauseButton.OnEvent("Click", TogglePause)
+
 optionsButton := mainGui.Add('Button', 'w100 h20 xp120 yp0', 'Options')
 optionsButton.OnEvent("Click", OptionsMenu)
+
+optiButton := mainGui.Add('Button', 'xp-120 yp30 w100 h20', 'Opti')
+optiButton.OnEvent("Click", OptimizeClick)
+
 mainGui.OnEvent("Close", CloseApp)
-mainGui.Show('w400 h120 x1200 y150')
+mainGui.Show('w400 h150 x1200 y150')
 
 ih := InputHook("L5 E M V" , '{Enter}', '@xd{Enter}, @x{Enter}, @xd2{Enter}')
 
@@ -18,6 +26,13 @@ GAME_SPEED := 700 ; fastest game speed
 IS_PAUSED := false
 BEEP_DURATION := 1000
 ALWAYS_RESET_TIMER := 0
+OPTI_HOTKEY := "F6"
+OPTI_LAG := 0 ; off default
+OPTI_BG := 1 ; on default
+OPTI_MODEL := 0 ; off default
+SETUP_BANK := 1 ; on default
+
+Hotkey OPTI_HOTKEY, GoOptimize ; Register default hotkey (F6)
 
 ; base cooldowns
 cooldowns := Map()
@@ -52,17 +67,126 @@ OptionsMenu(btn, info) {
     global mainGui
     options := Gui('+AlwaysOnTop')
     options.Opt("+Owner" mainGui.Hwnd)
-    options.Show('w500 h500 x1100 y300')
+    options.Show('w500 h500 x1100 y340')
     mainGui.Opt("+Disabled")
 
     beepText := options.Add("Text", "", "Sound alert duration (in milliseconds)")
     beepDuration := options.Add("Edit", "Limit4 Number w80", String(BEEP_DURATION))
     beepDuration.OnEvent("Change", UpdateSoundDuration)
 
-    alwaysResetTimer := options.Add("CheckBox" , "Checked" ALWAYS_RESET_TIMER, "Reset timer with command")
+    alwaysResetTimer := options.Add("CheckBox", "Checked" ALWAYS_RESET_TIMER, "Reset timer with command")
     alwaysResetTimer.OnEvent("Click", ToggleResetTimer)
 
+    optiGroup := options.Add("GroupBox", "w340 h200 r6 yp50", "Opti")
+    optiText := options.Add("Text", "yp20 xp10", "Assign hotkey:")
+    optiHotkey := options.Add("Hotkey", "yp-2 xp75", OPTI_HOTKEY)
+    optiHotkey.OnEvent("Change", ChangeOptiHotkey)
+
+    enableBG := options.Add("CheckBox", "yp25 xp-75 Checked" OPTI_BG, "Enable BG")
+    enableBG.OnEvent("Click", ToggleBG)
+
+    enableLag := options.Add("CheckBox", "Checked" OPTI_LAG, "Enable Lag")
+    enableLag.OnEvent("Click", ToggleLag)
+
+    enableModel := options.Add("CheckBox", "Checked" OPTI_MODEL, "Enable Model (Toggles off if Opti is run again)")
+    enableModel.OnEvent("Click", ToggleModel)
+
+    enableBank := options.Add("CheckBox", "Checked" SETUP_BANK, "Bank Auto Deposit")
+    enableBank.OnEvent("Click", SetupBank)
+
     options.OnEvent("Close", CloseOptions)
+}
+
+SetupBank(btn, info) {
+    global SETUP_BANK
+
+    SETUP_BANK := btn.Value
+}
+
+ChangeOptiHotkey(btn, info) {
+    global OPTI_HOTKEY
+
+    Hotkey OPTI_HOTKEY, GoOptimize, "Off"
+    OPTI_HOTKEY := btn.Value
+    Hotkey OPTI_HOTKEY, GoOptimize, "On"
+}
+
+ToggleBG(btn, info) {
+    global OPTI_BG
+
+    OPTI_BG := btn.Value
+}
+
+ToggleLag(btn, info) {
+    global OPTI_LAG
+
+    OPTI_LAG := btn.Value
+}
+
+ToggleModel(btn, info) {
+    global OPTI_MODEL
+
+    OPTI_MODEL := btn.Value
+}
+
+GoOptimize(hotkey) {
+    WinGetPos &X, &Y, &W, &H, "StarCraft II"
+    ; MsgBox "SC2 pos: " X "," Y " size: " W "x" H
+
+    optionsX := 0.0778 * W
+    optionsY := 0.15 * H
+
+    optiX := 0.175 * W
+    optiY := 0.64 * H
+
+    modelX := 0.175 * W
+    modelY := 0.575 * H
+
+    bgX := (OPTI_BG ? 0.077 : 0.085) * W
+    bgY := 0.4 * H
+
+    lagX := (OPTI_LAG ? 0.085 : 0.077) * W
+    lagY := 0.55 * H
+
+    SetControlDelay -1
+    ControlSend "{Esc}",, "StarCraft II"
+    ControlClick "x" optionsX " y" optionsY, "StarCraft II"
+
+    Sleep 200 ; Delay is necessary
+    ControlClick "x" optiX " y" optiY, "StarCraft II"
+
+    Sleep 100
+    ControlClick "x" bgX " y" bgY, "StarCraft II"
+
+    Sleep 100
+    ControlClick "x" lagX " y" lagY, "StarCraft II"
+
+    Sleep 100
+    ControlSend "{Esc}",, "StarCraft II"
+
+    if SETUP_BANK {
+        bankX := 0.055 * W
+        bankY := 0.15 * H
+        autoDepositX := 0.13 * W
+        autoDepositY := 0.31 * H
+
+        Sleep 100
+        ControlClick "x" bankX " y" bankY, "StarCraft II"
+
+        Sleep 100
+        ControlSend "{Ctrl down}",, "StarCraft II"
+        Sleep 20
+        ControlClick "x" autoDepositX " y" autoDepositY, "StarCraft II"
+        Sleep 20
+        ControlSend "{Ctrl up}",, "StarCraft II"
+
+        Sleep 250
+        ControlSend "{Esc}",, "StarCraft II"
+    }
+}
+
+OptimizeClick(btn, info) {
+    GoOptimize("")
 }
 
 CloseOptions(info) {
