@@ -1,4 +1,24 @@
 ﻿#Requires AutoHotkey v2.0
+
+; globals
+GAME_NAME := "StarCraft II"
+GAME_SPEED := 700 ; fastest game speed
+TIMER_PAUSED := false
+AUTO_PAUSED := false
+BEEP_DURATION := 1000
+RESET_TIMER := 0
+OPTI_HOTKEY := "F6"
+OPTI_LAG    := 0     ; off
+OPTI_BG     := 1     ; on
+OPTI_MODEL  := 0     ; off
+SETUP_BANK  := 1     ; on
+SETUP_RT    := 1     ; on
+SETUP_ZOOM  := 90
+AUTO_SHRINE := 0     ; off
+HORSE_RACE  := 0     ; off
+FORCE_TAB   := 0     ; off
+
+; gui setup
 mainGui  := Gui('+AlwaysOnTop', 'SLD Rank Timer'), mainGui.SetFont('s10')
 
 xTxt  := mainGui.Add('Text', 'w400 h15', '@x is available')
@@ -9,7 +29,7 @@ resetButton := mainGui.Add('Button', 'w100 h20', 'Reset')
 resetButton.OnEvent("Click", ResetClick)
 
 pauseButton := mainGui.Add('Button', 'w100 h20 xp120 yp0', 'Pause')
-pauseButton.OnEvent("Click", TogglePause)
+pauseButton.OnEvent("Click", SetGlobal.Bind("TIMER_PAUSED"))
 
 optionsButton := mainGui.Add('Button', 'w100 h20 xp120 yp0', 'Options')
 optionsButton.OnEvent("Click", OptionsMenu)
@@ -17,20 +37,13 @@ optionsButton.OnEvent("Click", OptionsMenu)
 optiButton := mainGui.Add('Button', 'xp-120 yp30 w100 h20', 'Opti')
 optiButton.OnEvent("Click", OptimizeClick)
 
+autoButton := mainGui.Add('Button', 'xp-120 yp0 w100 h20', 'Auto: OFF')
+autoButton.OnEvent("Click", SetGlobal.Bind("AUTO_PAUSED"))
+
 mainGui.OnEvent("Close", CloseApp)
 mainGui.Show('w400 h150 x1200 y150')
 
 ih := InputHook("L5 E M V" , '{Enter}', '@xd{Enter}, @x{Enter}, @xd2{Enter}')
-
-GAME_SPEED := 700 ; fastest game speed
-IS_PAUSED := false
-BEEP_DURATION := 1000
-ALWAYS_RESET_TIMER := 0
-OPTI_HOTKEY := "F6"
-OPTI_LAG := 0 ; off default
-OPTI_BG := 1 ; on default
-OPTI_MODEL := 0 ; off default
-SETUP_BANK := 1 ; on default
 
 Hotkey OPTI_HOTKEY, GoOptimize ; Register default hotkey (F6)
 
@@ -58,6 +71,7 @@ cd_map["xd"]      := 1800
 cd_map["x"]       := 900
 
 SetTimer(DetectKeyInputs, 100)
+SetControlDelay -1
 
 CloseApp(info) {
     ExitApp
@@ -70,37 +84,113 @@ OptionsMenu(btn, info) {
     options.Show('w500 h500 x1100 y340')
     mainGui.Opt("+Disabled")
 
-    beepText := options.Add("Text", "", "Sound alert duration (in milliseconds)")
+    beepText := options.Add("Text", "xp5 yp10", "Sound alert duration (in milliseconds)")
     beepDuration := options.Add("Edit", "Limit4 Number w80", String(BEEP_DURATION))
     beepDuration.OnEvent("Change", UpdateSoundDuration)
 
-    alwaysResetTimer := options.Add("CheckBox", "Checked" ALWAYS_RESET_TIMER, "Reset timer with command")
-    alwaysResetTimer.OnEvent("Click", ToggleResetTimer)
+    alwaysResetTimer := options.Add("CheckBox", "Checked" RESET_TIMER, "Reset timer with command")
+    alwaysResetTimer.OnEvent("Click", SetGlobal.Bind("RESET_TIMER"))
 
-    optiGroup := options.Add("GroupBox", "w340 h200 r6 yp50", "Opti")
+    optiGroup := options.Add("GroupBox", "w370 h300 r8 xp-5 yp35", "Opti")
     optiText := options.Add("Text", "yp20 xp10", "Assign hotkey:")
     optiHotkey := options.Add("Hotkey", "yp-2 xp75", OPTI_HOTKEY)
     optiHotkey.OnEvent("Change", ChangeOptiHotkey)
 
     enableBG := options.Add("CheckBox", "yp25 xp-75 Checked" OPTI_BG, "Enable BG")
-    enableBG.OnEvent("Click", ToggleBG)
+    enableBG.OnEvent("Click", SetGlobal.Bind("OPTI_BG"))
 
     enableLag := options.Add("CheckBox", "Checked" OPTI_LAG, "Enable Lag")
-    enableLag.OnEvent("Click", ToggleLag)
+    enableLag.OnEvent("Click", SetGlobal.Bind("OPTI_LAG"))
 
     enableModel := options.Add("CheckBox", "Checked" OPTI_MODEL, "Enable Model (Toggles off if Opti is run again)")
-    enableModel.OnEvent("Click", ToggleModel)
+    enableModel.OnEvent("Click", SetGlobal.Bind("OPTI_MODEL"))
 
     enableBank := options.Add("CheckBox", "Checked" SETUP_BANK, "Bank Auto Deposit")
-    enableBank.OnEvent("Click", SetupBank)
+    enableBank.OnEvent("Click", SetGlobal.Bind("SETUP_BANK"))
+
+    enableRT := options.Add("CheckBox", "Checked" SETUP_RT, "Set @rt to 1")
+    enableRT.OnEvent("Click", SetGlobal.Bind("SETUP_RT"))
+
+    zoomText := options.Add("Text", "", "Camera zoom")
+    setZoom := options.Add("DropDownList", "w50 yp-3 xp70 Choose5", ["50", "60", "70", "80", "90", "100"])
+    setZoom.OnEvent("Change", UpdateZoom)
+
+    autoGroup := options.Add("GroupBox", "w370 h200 r5 xp-80 yp35", "Auto")
+
+    enableShrine := options.Add("CheckBox", "xp10 yp20 Checked" AUTO_SHRINE, "Auto Shrine (1200) (Assumes shrine is bound to CTRL group 1)")
+    enableShrine.OnEvent("Click", SetGlobal.Bind("AUTO_SHRINE"))
+
+    enableHorseRace := options.Add("CheckBox", "Checked" HORSE_RACE, "Auto Horse Race")
+    enableHorseRace.OnEvent("Click", SetGlobal.Bind("HORSE_RACE"))
+
+    enableForceTab := options.Add("CheckBox", "Checked" FORCE_TAB, "Force Window Tab-in")
+    enableForceTab.OnEvent("Click", SetGlobal.Bind("FORCE_TAB"))
+
+    importButton := options.Add('Button', 'w100 h20 yp120', 'Import Settings')
+    importButton.OnEvent("Click", ImportSettings)
+
+    exportButton := options.Add('Button', 'w100 h20 xp120 yp0', 'Export Settings')
+    exportButton.OnEvent("Click", ExportSettings)
 
     options.OnEvent("Close", CloseOptions)
 }
 
-SetupBank(btn, info) {
-    global SETUP_BANK
+ImportSettings(btn, info) {
 
-    SETUP_BANK := btn.Value
+}
+
+ExportSettings(btn, info) {
+    
+}
+
+SetGlobal(globalVar, btn, info) {
+    global
+    %globalVar% := !%globalVar%
+
+    if btn == pauseButton {
+        btn.Text := %globalVar% ? 'Unpause' : 'Pause'
+    } else if btn == autoButton {
+        btn.Text := %globalVar% ? 'Auto: ON' : 'Auto: OFF'
+
+        SetTimer(AutoShrine, %globalVar% ? 2200 : 0)
+        SetTimer(HorseRace, %globalVar% ? 13000 : 0)
+    } else {
+        %globalVar% := btn.Value
+    }
+}
+
+HorseRace() {
+    global GAME_NAME
+    WinGetPos &X, &Y, &W, &H, GAME_NAME
+    horseX := 1.265 * H
+    horseY := 0.564 * H
+
+    if WinExist(GAME_NAME) && FORCE_TAB
+        WinActivate
+
+    ControlClick , GAME_NAME,,,, "x" horseX "y" horseY
+}
+
+AutoShrine() {
+    global GAME_NAME
+
+    if WinExist(GAME_NAME) && FORCE_TAB
+        WinActivate
+
+    ControlSend "{Ctrl down}0{Ctrl up}",, GAME_NAME ; Store control group of selected units
+
+    WinGetPos &X, &Y, &W, &H, GAME_NAME
+
+    groupOneX := 0.494 * H
+    groupOneY := 0.745 * H
+
+    shrine1200X := 1.523 * H
+    shrine1200Y := 0.904 * H
+
+    ControlClick , GAME_NAME,,,, "x" groupOneX "y" groupOneY ; Click shrine
+    Sleep 10
+    ControlClick , GAME_NAME,,,, "x" shrine1200X "y" shrine1200Y ; Click spell
+    ControlSend "0",, GAME_NAME ; Reselect control group
 }
 
 ChangeOptiHotkey(btn, info) {
@@ -111,26 +201,9 @@ ChangeOptiHotkey(btn, info) {
     Hotkey OPTI_HOTKEY, GoOptimize, "On"
 }
 
-ToggleBG(btn, info) {
-    global OPTI_BG
-
-    OPTI_BG := btn.Value
-}
-
-ToggleLag(btn, info) {
-    global OPTI_LAG
-
-    OPTI_LAG := btn.Value
-}
-
-ToggleModel(btn, info) {
-    global OPTI_MODEL
-
-    OPTI_MODEL := btn.Value
-}
-
 GoOptimize(hotkey) {
-    WinGetPos &X, &Y, &W, &H, "StarCraft II"
+    global GAME_NAME
+    WinGetPos &X, &Y, &W, &H, GAME_NAME
     ; MsgBox "SC2 pos: " X "," Y " size: " W "x" H
     ; UI Scales by height only
 
@@ -149,25 +222,24 @@ GoOptimize(hotkey) {
     lagX := (OPTI_LAG ? 0.15 : 0.1) * H
     lagY := 0.55 * H
 
-    SetControlDelay -1
-    ControlSend "{Esc}",, "StarCraft II"
-    ControlClick , "StarCraft II",,,, "x" optionsX "y" optionsY
+    ControlSend "{Esc}",, GAME_NAME
+    ControlClick , GAME_NAME,,,, "x" optionsX "y" optionsY
 
     Sleep 200 ; Delay is necessary
-    ControlClick , "StarCraft II",,,, "NA x" optiX "y" optiY
+    ControlClick , GAME_NAME,,,, "NA x" optiX "y" optiY
 
     Sleep 100
-    ControlClick , "StarCraft II",,,, "NA x" bgX "y" bgY
+    ControlClick , GAME_NAME,,,, "NA x" bgX "y" bgY
 
     Sleep 100
-    ControlClick , "StarCraft II",,,, "NA x" lagX "y" lagY
+    ControlClick , GAME_NAME,,,, "NA x" lagX "y" lagY
 
     if OPTI_MODEL {
-        ControlClick , "StarCraft II",,,, "NA x" modelX "y" modelY
+        ControlClick , GAME_NAME,,,, "NA x" modelX "y" modelY
     }
 
     Sleep 100
-    ControlSend "{Esc}",, "StarCraft II"
+    ControlSend "{Esc}",, GAME_NAME
 
     if SETUP_BANK {
         bankX := 0.07 * H
@@ -176,17 +248,31 @@ GoOptimize(hotkey) {
         autoDepositY := 0.321 * H
 
         Sleep 100
-        ControlClick , "StarCraft II",,,, "NA x" bankX "y" bankY
+        ControlClick , GAME_NAME,,,, "NA x" bankX "y" bankY
 
         Sleep 100
-        ControlSend "{Ctrl down}",, "StarCraft II"
+        ControlSend "{Ctrl down}",, GAME_NAME
         Sleep 20
-        ControlClick , "StarCraft II",,,, "NA x" autoDepositX "y" autoDepositY
+        ControlClick , GAME_NAME,,,, "NA x" autoDepositX "y" autoDepositY
         Sleep 20
-        ControlSend "{Ctrl up}",, "StarCraft II"
+        ControlSend "{Ctrl up}",, GAME_NAME
 
         Sleep 250
-        ControlSend "{Esc}",, "StarCraft II"
+        ControlSend "{Esc}",, GAME_NAME
+    }
+
+    if SETUP_RT {
+        Loop 2 {
+            ControlSend "{Enter}",, GAME_NAME
+            ControlSendText "@rt-",, GAME_NAME
+            ControlSend "{Enter}",, GAME_NAME
+        }
+    }
+
+    if SETUP_ZOOM != 0 {
+        ControlSend "{Enter}",, GAME_NAME
+        ControlSendText "-s " SETUP_ZOOM,, GAME_NAME
+        ControlSend "{Enter}",, GAME_NAME
     }
 }
 
@@ -199,24 +285,18 @@ CloseOptions(info) {
     mainGui.Opt("-Disabled")
 }
 
+UpdateZoom(btn, info) {
+    global SETUP_ZOOM
+
+    SETUP_ZOOM := Integer(btn.Text)
+}
+
 UpdateSoundDuration(btn, info) {
     global BEEP_DURATION
 
     if btn.Text != "" {
         BEEP_DURATION := Integer(btn.Text)
     }
-}
-
-ToggleResetTimer(btn, info) {
-    global ALWAYS_RESET_TIMER
-
-    ALWAYS_RESET_TIMER := btn.Value
-}
-
-TogglePause(btn, info) {
-    global IS_PAUSED
-    IS_PAUSED := !IS_PAUSED
-    pauseButton.Text := IS_PAUSED ? 'Unpause' : 'Pause'
 }
 
 ResetClick(btn, info) {
@@ -226,7 +306,7 @@ ResetClick(btn, info) {
 }
 
 DetectKeyInputs() {
-    global cooldowns, cd_map, timers, GAME_SPEED, ALWAYS_RESET_TIMER
+    global
     Loop {
         ih.Start() ; Start capturing input
         ih.Wait()
@@ -241,8 +321,8 @@ DetectKeyInputs() {
         }
 
         if input {
-            ; don't reset timer if already started and ALWAYS_RESET_TIMER is off
-            if !(ALWAYS_RESET_TIMER) && cd_map[input] < cooldowns[input] {
+            ; don't reset timer if already started and RESET_TIMER is off
+            if !(RESET_TIMER) && cd_map[input] < cooldowns[input] {
                 return
             }
 
@@ -253,15 +333,15 @@ DetectKeyInputs() {
 }
 
 ResetCD(cmd) {
-    global cd_map, cooldowns, boxes, timers
+    global
     cd_map[cmd] := cooldowns[cmd]
     boxes[cmd].Text := '@' . cmd . ' is available'
     SetTimer(timers[cmd], 0)
 }
 
 Tick(cmd) {
-    global cd_map, boxes, IS_PAUSED, beepDuration
-    if !(IS_PAUSED) {
+    global
+    if !TIMER_PAUSED {
         cd_map[cmd] := cd_map[cmd] - 1
     }
     if cd_map[cmd] > 0 {
