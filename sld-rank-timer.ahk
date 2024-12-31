@@ -132,51 +132,56 @@ ToggleModel(btn, info) {
 GoOptimize(hotkey) {
     WinGetPos &X, &Y, &W, &H, "StarCraft II"
     ; MsgBox "SC2 pos: " X "," Y " size: " W "x" H
+    ; UI Scales by height only
 
-    optionsX := 0.0778 * W
+    optionsX := 0.1 * H
     optionsY := 0.15 * H
 
-    optiX := 0.175 * W
-    optiY := 0.64 * H
+    optiX := 0.289 * H
+    optiY := 0.62 * H
 
-    modelX := 0.175 * W
+    modelX := 0.289 * H
     modelY := 0.575 * H
 
-    bgX := (OPTI_BG ? 0.077 : 0.085) * W
+    bgX := (OPTI_BG ? 0.1 : 0.15) * H
     bgY := 0.4 * H
 
-    lagX := (OPTI_LAG ? 0.085 : 0.077) * W
+    lagX := (OPTI_LAG ? 0.15 : 0.1) * H
     lagY := 0.55 * H
 
     SetControlDelay -1
     ControlSend "{Esc}",, "StarCraft II"
-    ControlClick "x" optionsX " y" optionsY, "StarCraft II"
+    ControlClick , "StarCraft II",,,, "x" optionsX "y" optionsY
 
     Sleep 200 ; Delay is necessary
-    ControlClick "x" optiX " y" optiY, "StarCraft II"
+    ControlClick , "StarCraft II",,,, "NA x" optiX "y" optiY
 
     Sleep 100
-    ControlClick "x" bgX " y" bgY, "StarCraft II"
+    ControlClick , "StarCraft II",,,, "NA x" bgX "y" bgY
 
     Sleep 100
-    ControlClick "x" lagX " y" lagY, "StarCraft II"
+    ControlClick , "StarCraft II",,,, "NA x" lagX "y" lagY
+
+    if OPTI_MODEL {
+        ControlClick , "StarCraft II",,,, "NA x" modelX "y" modelY
+    }
 
     Sleep 100
     ControlSend "{Esc}",, "StarCraft II"
 
     if SETUP_BANK {
-        bankX := 0.055 * W
+        bankX := 0.07 * H
         bankY := 0.15 * H
-        autoDepositX := 0.13 * W
-        autoDepositY := 0.31 * H
+        autoDepositX := 0.195 * H
+        autoDepositY := 0.321 * H
 
         Sleep 100
-        ControlClick "x" bankX " y" bankY, "StarCraft II"
+        ControlClick , "StarCraft II",,,, "NA x" bankX "y" bankY
 
         Sleep 100
         ControlSend "{Ctrl down}",, "StarCraft II"
         Sleep 20
-        ControlClick "x" autoDepositX " y" autoDepositY, "StarCraft II"
+        ControlClick , "StarCraft II",,,, "NA x" autoDepositX "y" autoDepositY
         Sleep 20
         ControlSend "{Ctrl up}",, "StarCraft II"
 
