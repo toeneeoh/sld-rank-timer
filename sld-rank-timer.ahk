@@ -4,7 +4,7 @@
 GAME_NAME := "StarCraft II"
 GAME_SPEED := 700 ; fastest game speed
 TIMER_PAUSED := false
-AUTO_PAUSED := false
+AUTO_PAUSED := true
 BEEP_DURATION := 1000
 RESET_TIMER := 0
 BIND_SHRINE := 1     ; on
@@ -192,47 +192,52 @@ SetGlobal(globalVar, btn, info) {
     if btn == pauseButton {
         btn.Text := %globalVar% ? 'Unpause' : 'Pause'
     } else if btn == autoButton {
-        btn.Text := %globalVar% ? 'Auto: ON' : 'Auto: OFF'
+        btn.Text := %globalVar% ? 'Auto: OFF' : 'Auto: ON'
 
-        SetTimer(AutoShrine, %globalVar% ? 2200 : 0)
-        SetTimer(HorseRace, %globalVar% ? 13000 : 0)
+        SetTimer(AutoShrine, AUTO_PAUSED ? 0 : 2200)
+        SetTimer(HorseRace, AUTO_PAUSED ? 0 : 13000)
     } else {
         %globalVar% := btn.Value
     }
 }
 
 HorseRace() {
-    global GAME_NAME
-    WinGetPos &X, &Y, &W, &H, GAME_NAME
-    horseX := 1.265 * H
-    horseY := 0.564 * H
+    global
 
-    if WinExist(GAME_NAME) && FORCE_TAB
-        WinActivate
+    IF HORSE_RACE {
+        WinGetPos &X, &Y, &W, &H, GAME_NAME
+        horseX := 1.265 * H
+        horseY := 0.564 * H
 
-    ControlClick , GAME_NAME,,,, "x" horseX "y" horseY
+        if WinExist(GAME_NAME) && FORCE_TAB
+            WinActivate
+
+        ControlClick , GAME_NAME,,,, "x" horseX "y" horseY
+    }
 }
 
 AutoShrine() {
-    global GAME_NAME
+    global
 
-    if WinExist(GAME_NAME) && FORCE_TAB
-        WinActivate
+    IF AUTO_SHRINE {
+        if WinExist(GAME_NAME) && FORCE_TAB
+            WinActivate
 
-    ControlSend "{Ctrl down}0{Ctrl up}",, GAME_NAME ; Store control group of selected units
+        ControlSend "{Ctrl down}0{Ctrl up}",, GAME_NAME ; Store control group of selected units
 
-    WinGetPos &X, &Y, &W, &H, GAME_NAME
+        WinGetPos &X, &Y, &W, &H, GAME_NAME
 
-    groupOneX := 0.494 * H
-    groupOneY := 0.745 * H
+        groupOneX := 0.494 * H
+        groupOneY := 0.745 * H
 
-    shrine1200X := 1.523 * H
-    shrine1200Y := 0.904 * H
+        shrine1200X := 1.523 * H
+        shrine1200Y := 0.904 * H
 
-    ControlClick , GAME_NAME,,,, "x" groupOneX "y" groupOneY ; Click shrine
-    Sleep 10
-    ControlClick , GAME_NAME,,,, "x" shrine1200X "y" shrine1200Y ; Click spell
-    ControlSend "0",, GAME_NAME ; Reselect control group
+        ControlClick , GAME_NAME,,,, "x" groupOneX "y" groupOneY ; Click shrine
+        Sleep 10
+        ControlClick , GAME_NAME,,,, "x" shrine1200X "y" shrine1200Y ; Click spell
+        ControlSend "0",, GAME_NAME ; Reselect control group
+    }
 }
 
 ChangeOptiHotkey(btn, info) {
