@@ -7,13 +7,15 @@ TIMER_PAUSED := false
 AUTO_PAUSED := false
 BEEP_DURATION := 1000
 RESET_TIMER := 0
+BIND_SHRINE := 1     ; on
+BIND_HIDDEN := 1     ; on
 OPTI_HOTKEY := "F6"
 OPTI_LAG    := 0     ; off
 OPTI_BG     := 1     ; on
 OPTI_MODEL  := 0     ; off
 SETUP_BANK  := 1     ; on
 SETUP_RT    := 1     ; on
-SETUP_ZOOM  := 90
+SETUP_ZOOM  := 5     ; 90 default
 AUTO_SHRINE := 0     ; off
 HORSE_RACE  := 0     ; off
 FORCE_TAB   := 0     ; off
@@ -84,19 +86,26 @@ OptionsMenu(btn, info) {
     options.Show('w500 h500 x1100 y340')
     mainGui.Opt("+Disabled")
 
-    beepText := options.Add("Text", "xp5 yp10", "Sound alert duration (in milliseconds)")
+    timerGroup := options.Add("GroupBox", "w370 h300 r4", "Timer")
+    beepText := options.Add("Text", "xp10 yp20", "Sound alert duration (in milliseconds)")
     beepDuration := options.Add("Edit", "Limit4 Number w80", String(BEEP_DURATION))
     beepDuration.OnEvent("Change", UpdateSoundDuration)
 
     alwaysResetTimer := options.Add("CheckBox", "Checked" RESET_TIMER, "Reset timer with command")
     alwaysResetTimer.OnEvent("Click", SetGlobal.Bind("RESET_TIMER"))
 
-    optiGroup := options.Add("GroupBox", "w370 h300 r8 xp-5 yp35", "Opti")
+    optiGroup := options.Add("GroupBox", "w370 h300 r10 xp-10 yp35", "Opti")
     optiText := options.Add("Text", "yp20 xp10", "Assign hotkey:")
     optiHotkey := options.Add("Hotkey", "yp-2 xp75", OPTI_HOTKEY)
     optiHotkey.OnEvent("Change", ChangeOptiHotkey)
 
-    enableBG := options.Add("CheckBox", "yp25 xp-75 Checked" OPTI_BG, "Enable BG")
+    bindShrine := options.Add("CheckBox", "yp25 xp-75 Checked" BIND_SHRINE, "Bind shrine to CTRL group 1")
+    bindShrine.OnEvent("Click", SetGlobal.Bind("BIND_SHRINE"))
+
+    bindHidden := options.Add("CheckBox", "Checked" BIND_HIDDEN, "Bind hidden beacon to CTRL group 2")
+    bindHidden.OnEvent("Click", SetGlobal.Bind("BIND_HIDDEN"))
+
+    enableBG := options.Add("CheckBox", "Checked" OPTI_BG, "Enable BG")
     enableBG.OnEvent("Click", SetGlobal.Bind("OPTI_BG"))
 
     enableLag := options.Add("CheckBox", "Checked" OPTI_LAG, "Enable Lag")
@@ -112,7 +121,7 @@ OptionsMenu(btn, info) {
     enableRT.OnEvent("Click", SetGlobal.Bind("SETUP_RT"))
 
     zoomText := options.Add("Text", "", "Camera zoom")
-    setZoom := options.Add("DropDownList", "w50 yp-3 xp70 Choose5", ["50", "60", "70", "80", "90", "100"])
+    setZoom := options.Add("DropDownList", "w50 yp-3 xp70 Choose" SETUP_ZOOM, ["50", "60", "70", "80", "90", "100"])
     setZoom.OnEvent("Change", UpdateZoom)
 
     autoGroup := options.Add("GroupBox", "w370 h200 r5 xp-80 yp35", "Auto")
@@ -126,7 +135,7 @@ OptionsMenu(btn, info) {
     enableForceTab := options.Add("CheckBox", "Checked" FORCE_TAB, "Force Window Tab-in")
     enableForceTab.OnEvent("Click", SetGlobal.Bind("FORCE_TAB"))
 
-    importButton := options.Add('Button', 'w100 h20 yp120', 'Import Settings')
+    importButton := options.Add('Button', 'w100 h20 yp100', 'Import Settings')
     importButton.OnEvent("Click", ImportSettings)
 
     exportButton := options.Add('Button', 'w100 h20 xp120 yp0', 'Export Settings')
@@ -136,11 +145,44 @@ OptionsMenu(btn, info) {
 }
 
 ImportSettings(btn, info) {
+    global
+    BEEP_DURATION := IniRead("config", "Timer", "BEEP_DURATION")
+    RESET_TIMER := IniRead("config", "Timer", "RESET_TIMER")
 
+    OPTI_HOTKEY := IniRead("config", "Opti", "OPTI_HOTKEY")
+    OPTI_BG := IniRead("config", "Opti", "OPTI_BG")
+    OPTI_LAG := IniRead("config", "Opti", "OPTI_LAG")
+    OPTI_MODEL := IniRead("config", "Opti", "OPTI_MODEL")
+    BIND_SHRINE := IniRead("config", "Opti", "BIND_SHRINE")
+    BIND_HIDDEN := IniRead("config", "Opti", "BIND_HIDDEN")
+    SETUP_BANK := IniRead("config", "Opti", "SETUP_BANK")
+    SETUP_RT := IniRead("config", "Opti", "SETUP_RT")
+    SETUP_ZOOM := IniRead("config", "Opti", "SETUP_ZOOM")
+
+    AUTO_SHRINE := IniRead("config", "Auto", "AUTO_SHRINE")
+    HORSE_RACE := IniRead("config", "Auto", "HORSE_RACE")
+    FORCE_TAB := IniRead("config", "Auto", "FORCE_TAB")
+
+    WinClose
 }
 
 ExportSettings(btn, info) {
-    
+    IniWrite(BEEP_DURATION, "config", "Timer", "BEEP_DURATION")
+    IniWrite(RESET_TIMER, "config", "Timer", "RESET_TIMER")
+
+    IniWrite(OPTI_HOTKEY, "config", "Opti", "OPTI_HOTKEY")
+    IniWrite(OPTI_BG, "config", "Opti", "OPTI_BG")
+    IniWrite(OPTI_LAG, "config", "Opti", "OPTI_LAG")
+    IniWrite(OPTI_MODEL, "config", "Opti", "OPTI_MODEL")
+    IniWrite(BIND_SHRINE, "config", "Opti", "BIND_SHRINE")
+    IniWrite(BIND_HIDDEN, "config", "Opti", "BIND_HIDDEN")
+    IniWrite(SETUP_BANK, "config", "Opti", "SETUP_BANK")
+    IniWrite(SETUP_RT, "config", "Opti", "SETUP_RT")
+    IniWrite(SETUP_ZOOM, "config", "Opti", "SETUP_ZOOM")
+
+    IniWrite(AUTO_SHRINE, "config", "Auto", "AUTO_SHRINE")
+    IniWrite(HORSE_RACE, "config", "Auto", "HORSE_RACE")
+    IniWrite(FORCE_TAB, "config", "Auto", "FORCE_TAB")
 }
 
 SetGlobal(globalVar, btn, info) {
@@ -222,23 +264,40 @@ GoOptimize(hotkey) {
     lagX := (OPTI_LAG ? 0.15 : 0.1) * H
     lagY := 0.55 * H
 
+    ; start
     ControlSend "{Esc}",, GAME_NAME
+
+    if BIND_SHRINE {
+        ControlSend "{F1}",, GAME_NAME
+        ControlSend "{Ctrl down}1{Ctrl up}",, GAME_NAME
+    }
+
+    if BIND_HIDDEN {
+        hiddenX := 0.932 * H
+        hiddenY := 0.144 * H
+        ControlClick , GAME_NAME,,,, "x" hiddenX "y" hiddenY
+        Sleep 500
+        ControlSend "{Ctrl down}2{Ctrl up}",, GAME_NAME
+    }
+
+    ; open options
     ControlClick , GAME_NAME,,,, "x" optionsX "y" optionsY
 
-    Sleep 200 ; Delay is necessary
+    Sleep 100 ; Delay is necessary (?)
     ControlClick , GAME_NAME,,,, "NA x" optiX "y" optiY
 
-    Sleep 100
+    Sleep 50
     ControlClick , GAME_NAME,,,, "NA x" bgX "y" bgY
 
-    Sleep 100
+    Sleep 50
     ControlClick , GAME_NAME,,,, "NA x" lagX "y" lagY
 
     if OPTI_MODEL {
+        Sleep 50
         ControlClick , GAME_NAME,,,, "NA x" modelX "y" modelY
     }
 
-    Sleep 100
+    Sleep 50
     ControlSend "{Esc}",, GAME_NAME
 
     if SETUP_BANK {
@@ -247,17 +306,15 @@ GoOptimize(hotkey) {
         autoDepositX := 0.195 * H
         autoDepositY := 0.321 * H
 
-        Sleep 100
+        Sleep 150
         ControlClick , GAME_NAME,,,, "NA x" bankX "y" bankY
 
-        Sleep 100
+        Sleep 150
         ControlSend "{Ctrl down}",, GAME_NAME
-        Sleep 20
         ControlClick , GAME_NAME,,,, "NA x" autoDepositX "y" autoDepositY
-        Sleep 20
         ControlSend "{Ctrl up}",, GAME_NAME
 
-        Sleep 250
+        Sleep 300
         ControlSend "{Esc}",, GAME_NAME
     }
 
@@ -271,7 +328,7 @@ GoOptimize(hotkey) {
 
     if SETUP_ZOOM != 0 {
         ControlSend "{Enter}",, GAME_NAME
-        ControlSendText "-s " SETUP_ZOOM,, GAME_NAME
+        ControlSendText "-s " (SETUP_ZOOM * 10 + 40),, GAME_NAME
         ControlSend "{Enter}",, GAME_NAME
     }
 }
@@ -288,7 +345,7 @@ CloseOptions(info) {
 UpdateZoom(btn, info) {
     global SETUP_ZOOM
 
-    SETUP_ZOOM := Integer(btn.Text)
+    SETUP_ZOOM := btn.Value
 }
 
 UpdateSoundDuration(btn, info) {
