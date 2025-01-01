@@ -257,8 +257,8 @@ GoOptimize(hotkey) {
     optionsX := 0.1 * H
     optionsY := 0.15 * H
 
-    optiX := 0.289 * H
-    optiY := 0.62 * H
+    optiX := 0.291 * H
+    optiY := 0.618 * H
 
     modelX := 0.289 * H
     modelY := 0.575 * H
@@ -281,28 +281,29 @@ GoOptimize(hotkey) {
         hiddenX := 0.932 * H
         hiddenY := 0.144 * H
         ControlClick , GAME_NAME,,,, "x" hiddenX "y" hiddenY
-        Sleep 500
+        Sleep 400
         ControlSend "{Ctrl down}2{Ctrl up}",, GAME_NAME
     }
 
+    Sleep 150
     ; open options
     ControlClick , GAME_NAME,,,, "x" optionsX "y" optionsY
 
-    Sleep 100 ; Delay is necessary (?)
+    Sleep 150 ; Delay is necessary (?)
     ControlClick , GAME_NAME,,,, "NA x" optiX "y" optiY
 
-    Sleep 50
+    Sleep 150
     ControlClick , GAME_NAME,,,, "NA x" bgX "y" bgY
 
-    Sleep 50
+    Sleep 150
     ControlClick , GAME_NAME,,,, "NA x" lagX "y" lagY
 
     if OPTI_MODEL {
-        Sleep 50
+        Sleep 150
         ControlClick , GAME_NAME,,,, "NA x" modelX "y" modelY
     }
 
-    Sleep 50
+    Sleep 150
     ControlSend "{Esc}",, GAME_NAME
 
     if SETUP_BANK {
@@ -319,7 +320,7 @@ GoOptimize(hotkey) {
         ControlClick , GAME_NAME,,,, "NA x" autoDepositX "y" autoDepositY
         ControlSend "{Ctrl up}",, GAME_NAME
 
-        Sleep 300
+        Sleep 150
         ControlSend "{Esc}",, GAME_NAME
     }
 
