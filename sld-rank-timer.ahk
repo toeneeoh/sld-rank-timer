@@ -275,13 +275,14 @@ GoOptimize(hotkey) {
     if BIND_SHRINE {
         ControlSend "{F1}",, GAME_NAME
         ControlSend "{Ctrl down}1{Ctrl up}",, GAME_NAME
+        Sleep 150
     }
 
     if BIND_HIDDEN {
         hiddenX := 0.932 * H
         hiddenY := 0.144 * H
         ControlClick , GAME_NAME,,,, "x" hiddenX "y" hiddenY
-        Sleep 400
+        Sleep 500
         ControlSend "{Ctrl down}2{Ctrl up}",, GAME_NAME
     }
 
