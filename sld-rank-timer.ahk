@@ -13,11 +13,15 @@ OPTI_HOTKEY := "F6"
 OPTI_LAG    := 0     ; off
 OPTI_BG     := 1     ; on
 OPTI_MODEL  := 0     ; off
+OPTI_DATA   := 0     ; off
 SETUP_BANK  := 1     ; on
 SETUP_RT    := 1     ; on
 SETUP_ZOOM  := 5     ; 90 default
 AUTO_SHRINE := 0     ; off
+SHRINE_FREQ := 2200
 HORSE_RACE  := 0     ; off
+RUNE_PULL   := 0     ; off
+RUNE_OPTION := 1     ; sell default
 FORCE_TAB   := 0     ; off
 
 ; gui setup
@@ -73,6 +77,7 @@ cd_map["xd"]      := 1800
 cd_map["x"]       := 900
 
 SetTimer(DetectKeyInputs, 100)
+Import()
 SetControlDelay -1
 
 CloseApp(info) {
@@ -83,18 +88,18 @@ OptionsMenu(btn, info) {
     global mainGui
     options := Gui('+AlwaysOnTop')
     options.Opt("+Owner" mainGui.Hwnd)
-    options.Show('w500 h500 x1100 y340')
+    options.Show('w500 h700 x1100 y340')
     mainGui.Opt("+Disabled")
 
     timerGroup := options.Add("GroupBox", "w370 h300 r4", "Timer")
     beepText := options.Add("Text", "xp10 yp20", "Sound alert duration (in milliseconds)")
     beepDuration := options.Add("Edit", "Limit4 Number w80", String(BEEP_DURATION))
-    beepDuration.OnEvent("Change", UpdateSoundDuration)
+    beepDuration.OnEvent("Change", SetGlobal.Bind("BEEP_DURATION"))
 
     alwaysResetTimer := options.Add("CheckBox", "Checked" RESET_TIMER, "Reset timer with command")
     alwaysResetTimer.OnEvent("Click", SetGlobal.Bind("RESET_TIMER"))
 
-    optiGroup := options.Add("GroupBox", "w370 h300 r10 xp-10 yp35", "Opti")
+    optiGroup := options.Add("GroupBox", "w370 h300 r11 xp-10 yp35", "Opti")
     optiText := options.Add("Text", "yp20 xp10", "Assign hotkey:")
     optiHotkey := options.Add("Hotkey", "yp-2 xp75", OPTI_HOTKEY)
     optiHotkey.OnEvent("Change", ChangeOptiHotkey)
@@ -114,6 +119,9 @@ OptionsMenu(btn, info) {
     enableModel := options.Add("CheckBox", "Checked" OPTI_MODEL, "Enable Model (Toggles off if Opti is run again)")
     enableModel.OnEvent("Click", SetGlobal.Bind("OPTI_MODEL"))
 
+    enableData := options.Add("CheckBox", "Checked" OPTI_DATA, "Enable @Data")
+    enableData.OnEvent("Click", SetGlobal.Bind("OPTI_DATA"))
+
     enableBank := options.Add("CheckBox", "Checked" SETUP_BANK, "Bank Auto Deposit")
     enableBank.OnEvent("Click", SetGlobal.Bind("SETUP_BANK"))
 
@@ -122,17 +130,27 @@ OptionsMenu(btn, info) {
 
     zoomText := options.Add("Text", "", "Camera zoom")
     setZoom := options.Add("DropDownList", "w50 yp-3 xp70 Choose" SETUP_ZOOM, ["50", "60", "70", "80", "90", "100"])
-    setZoom.OnEvent("Change", UpdateZoom)
+    setZoom.OnEvent("Change", SetGlobal.Bind("SETUP_ZOOM"))
 
-    autoGroup := options.Add("GroupBox", "w370 h200 r5 xp-80 yp35", "Auto")
+    autoGroup := options.Add("GroupBox", "w370 h300 r6 xp-80 yp35", "Auto")
 
-    enableShrine := options.Add("CheckBox", "xp10 yp20 Checked" AUTO_SHRINE, "Auto Shrine (1200) (Assumes shrine is bound to CTRL group 1)")
+    enableShrine := options.Add("CheckBox", "xp10 yp20 Checked" AUTO_SHRINE, "Auto Shrine (1200) Frequency (ms):")
     enableShrine.OnEvent("Click", SetGlobal.Bind("AUTO_SHRINE"))
 
-    enableHorseRace := options.Add("CheckBox", "Checked" HORSE_RACE, "Auto Horse Race")
+    shrineDuration := options.Add("Edit", "Limit5 Number w50 yp-3 xp190", String(SHRINE_FREQ))
+    shrineDuration.OnEvent("Change", SetGlobal.Bind("SHRINE_FREQ"))
+    shrineText := options.Add("Text", "yp3 xp60", "(Bound to CTRL+1)")
+
+    enableHorseRace := options.Add("CheckBox", "xp-250 yp20 Checked" HORSE_RACE, "Auto Horse Race")
     enableHorseRace.OnEvent("Click", SetGlobal.Bind("HORSE_RACE"))
 
-    enableForceTab := options.Add("CheckBox", "Checked" FORCE_TAB, "Force Window Tab-in")
+    enableRune := options.Add("CheckBox", "Checked" RUNE_PULL, "Auto Rune Pull")
+    enableRune.OnEvent("Click", SetGlobal.Bind("RUNE_PULL"))
+
+    runeOption := options.Add("DropDownList", "w60 yp-3 xp110 Choose" RUNE_OPTION, ["Sell", "UPG 1", "UPG 2", "UPG 3", "UPG 4", "UPG 5"])
+    runeOption.OnEvent("Change", SetGlobal.Bind("RUNE_OPTION"))
+
+    enableForceTab := options.Add("CheckBox", "xp-110 yp23 Checked" FORCE_TAB, "Force Window Tab-in")
     enableForceTab.OnEvent("Click", SetGlobal.Bind("FORCE_TAB"))
 
     importButton := options.Add('Button', 'w100 h20 yp100', 'Import Settings')
@@ -144,25 +162,32 @@ OptionsMenu(btn, info) {
     options.OnEvent("Close", CloseOptions)
 }
 
-ImportSettings(btn, info) {
+Import() {
     global
-    BEEP_DURATION := IniRead("config", "Timer", "BEEP_DURATION")
-    RESET_TIMER := IniRead("config", "Timer", "RESET_TIMER")
+    BEEP_DURATION := IniRead("config", "Timer", "BEEP_DURATION", 1000)
+    RESET_TIMER := IniRead("config", "Timer", "RESET_TIMER", 0)
 
-    OPTI_HOTKEY := IniRead("config", "Opti", "OPTI_HOTKEY")
-    OPTI_BG := IniRead("config", "Opti", "OPTI_BG")
-    OPTI_LAG := IniRead("config", "Opti", "OPTI_LAG")
-    OPTI_MODEL := IniRead("config", "Opti", "OPTI_MODEL")
-    BIND_SHRINE := IniRead("config", "Opti", "BIND_SHRINE")
-    BIND_HIDDEN := IniRead("config", "Opti", "BIND_HIDDEN")
-    SETUP_BANK := IniRead("config", "Opti", "SETUP_BANK")
-    SETUP_RT := IniRead("config", "Opti", "SETUP_RT")
-    SETUP_ZOOM := IniRead("config", "Opti", "SETUP_ZOOM")
+    OPTI_HOTKEY := IniRead("config", "Opti", "OPTI_HOTKEY", "F6")
+    OPTI_BG := IniRead("config", "Opti", "OPTI_BG", 1)
+    OPTI_LAG := IniRead("config", "Opti", "OPTI_LAG", 0)
+    OPTI_MODEL := IniRead("config", "Opti", "OPTI_MODEL", 0)
+    OPTI_DATA := IniRead("config", "Opti", "OPTI_DATA", 0)
+    BIND_SHRINE := IniRead("config", "Opti", "BIND_SHRINE", 1)
+    BIND_HIDDEN := IniRead("config", "Opti", "BIND_HIDDEN", 1)
+    SETUP_BANK := IniRead("config", "Opti", "SETUP_BANK", 1)
+    SETUP_RT := IniRead("config", "Opti", "SETUP_RT", 1)
+    SETUP_ZOOM := IniRead("config", "Opti", "SETUP_ZOOM", 5)
 
-    AUTO_SHRINE := IniRead("config", "Auto", "AUTO_SHRINE")
-    HORSE_RACE := IniRead("config", "Auto", "HORSE_RACE")
-    FORCE_TAB := IniRead("config", "Auto", "FORCE_TAB")
+    AUTO_SHRINE := IniRead("config", "Auto", "AUTO_SHRINE", 0)
+    SHRINE_FREQ := IniRead("config", "Auto", "SHRINE_FREQ", 2200)
+    HORSE_RACE := IniRead("config", "Auto", "HORSE_RACE", 0)
+    RUNE_PULL := IniRead("config", "Auto", "RUNE_PULL", 0)
+    RUNE_OPTION := IniRead("config", "Auto", "RUNE_OPTION", 1)
+    FORCE_TAB := IniRead("config", "Auto", "FORCE_TAB", 0)
+}
 
+ImportSettings(btn, info) {
+    Import
     WinClose
 }
 
@@ -174,6 +199,7 @@ ExportSettings(btn, info) {
     IniWrite(OPTI_BG, "config", "Opti", "OPTI_BG")
     IniWrite(OPTI_LAG, "config", "Opti", "OPTI_LAG")
     IniWrite(OPTI_MODEL, "config", "Opti", "OPTI_MODEL")
+    IniWrite(OPTI_DATA, "config", "Opti", "OPTI_DATA")
     IniWrite(BIND_SHRINE, "config", "Opti", "BIND_SHRINE")
     IniWrite(BIND_HIDDEN, "config", "Opti", "BIND_HIDDEN")
     IniWrite(SETUP_BANK, "config", "Opti", "SETUP_BANK")
@@ -181,7 +207,10 @@ ExportSettings(btn, info) {
     IniWrite(SETUP_ZOOM, "config", "Opti", "SETUP_ZOOM")
 
     IniWrite(AUTO_SHRINE, "config", "Auto", "AUTO_SHRINE")
+    IniWrite(SHRINE_FREQ, "config", "Auto", "SHRINE_FREQ")
     IniWrite(HORSE_RACE, "config", "Auto", "HORSE_RACE")
+    IniWrite(RUNE_PULL, "config", "Auto", "RUNE_PULL")
+    IniWrite(RUNE_OPTION, "config", "Auto", "RUNE_OPTION")
     IniWrite(FORCE_TAB, "config", "Auto", "FORCE_TAB")
 }
 
@@ -194,8 +223,9 @@ SetGlobal(globalVar, btn, info) {
     } else if btn == autoButton {
         btn.Text := %globalVar% ? 'Auto: OFF' : 'Auto: ON'
 
-        SetTimer(AutoShrine, AUTO_PAUSED ? 0 : 2200)
-        SetTimer(HorseRace, AUTO_PAUSED ? 0 : 13000)
+        SetTimer(AutoShrine, AUTO_PAUSED ? 0 : SHRINE_FREQ)
+        SetTimer(HorseRace, AUTO_PAUSED ? 0 : 10000)
+        SetTimer(RunePull, AUTO_PAUSED ? 0 : 100000)
     } else {
         %globalVar% := btn.Value
     }
@@ -204,22 +234,23 @@ SetGlobal(globalVar, btn, info) {
 HorseRace() {
     global
 
-    IF HORSE_RACE {
+    if HORSE_RACE {
         WinGetPos &X, &Y, &W, &H, GAME_NAME
-        horseX := 1.265 * H
-        horseY := 0.564 * H
 
         if WinExist(GAME_NAME) && FORCE_TAB
             WinActivate
 
-        ControlClick , GAME_NAME,,,, "x" horseX "y" horseY
+        horseX := 1.265 * H
+        horseY := 0.564 * H
+
+        ControlClick , GAME_NAME,,,, "NA x" horseX "y" horseY
     }
 }
 
 AutoShrine() {
     global
 
-    IF AUTO_SHRINE {
+    if AUTO_SHRINE {
         if WinExist(GAME_NAME) && FORCE_TAB
             WinActivate
 
@@ -240,6 +271,45 @@ AutoShrine() {
     }
 }
 
+RunePull() {
+    global
+
+    if RUNE_PULL {
+        WinGetPos &X, &Y, &W, &H, GAME_NAME
+
+        if WinExist(GAME_NAME) && FORCE_TAB
+            WinActivate
+
+        runeX := 1.01 * H
+        runeY := 0.317 * H
+
+        claimX := 1.01 * H
+        claimY := 0.39 * H
+
+        sellX := 0.817 * H
+        sellY := 0.325 * H
+
+        upgX := 0.75 * H
+        upgY := 0.328 * H
+
+        slotX := 0.988 * H
+        slotY := (0.195 + (0.07 * (RUNE_OPTION - 2))) * H
+
+        ControlClick , GAME_NAME,,,, "NA x" runeX "y" runeY
+        Sleep 6000 ; wait for pull
+        ControlClick , GAME_NAME,,,, "NA x" claimX "y" claimY
+        Sleep 250
+
+        if RUNE_OPTION == 1 { ; sell
+            ControlClick , GAME_NAME,,,, "NA x" sellX "y" sellY
+        } else {
+            ControlClick , GAME_NAME,,,, "NA x" upgX "y" upgY
+            Sleep 1000
+            ControlClick , GAME_NAME,,,, "NA x" slotX "y" slotY
+        }
+    }
+}
+
 ChangeOptiHotkey(btn, info) {
     global OPTI_HOTKEY
 
@@ -251,7 +321,6 @@ ChangeOptiHotkey(btn, info) {
 GoOptimize(hotkey) {
     global GAME_NAME
     WinGetPos &X, &Y, &W, &H, GAME_NAME
-    ; MsgBox "SC2 pos: " X "," Y " size: " W "x" H
     ; UI Scales by height only
 
     optionsX := 0.1 * H
@@ -304,6 +373,12 @@ GoOptimize(hotkey) {
         ControlClick , GAME_NAME,,,, "NA x" modelX "y" modelY
     }
 
+    if OPTI_DATA {
+        ControlSend "{Enter}",, GAME_NAME
+        ControlSendText "@data",, GAME_NAME
+        ControlSend "{Enter}",, GAME_NAME
+    }
+
     Sleep 150
     ControlSend "{Esc}",, GAME_NAME
 
@@ -347,20 +422,6 @@ OptimizeClick(btn, info) {
 CloseOptions(info) {
     global mainGui
     mainGui.Opt("-Disabled")
-}
-
-UpdateZoom(btn, info) {
-    global SETUP_ZOOM
-
-    SETUP_ZOOM := btn.Value
-}
-
-UpdateSoundDuration(btn, info) {
-    global BEEP_DURATION
-
-    if btn.Text != "" {
-        BEEP_DURATION := Integer(btn.Text)
-    }
 }
 
 ResetClick(btn, info) {
